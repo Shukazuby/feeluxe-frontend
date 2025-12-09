@@ -14,7 +14,7 @@ export default function Home() {
         <section className="relative h-[600px] w-full overflow-hidden">
           <div className="absolute inset-0">
             <Image
-              src="/hero-image.jpg"
+              src="http://res.cloudinary.com/dkqtwvhq2/image/upload/v1765297289/inflow/images/gj04rs2obbasxynskxa3.jpg"
               alt="Woman wearing scarf"
               fill
               className="object-cover"
