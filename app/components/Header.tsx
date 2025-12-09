@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from './AuthProvider';
@@ -8,6 +9,7 @@ export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const { requireAuth } = useAuth();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navLinks = [
     { href: '/shop-all', label: 'Shop All' },
@@ -15,6 +17,14 @@ export default function Header() {
     { href: '/about-us', label: 'About Us' },
     { href: '/contact', label: 'Contact' },
   ];
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+  };
 
   return (
     <header className="w-full bg-white">
@@ -24,6 +34,7 @@ export default function Header() {
           <span className="text-xl font-semibold text-black">Feeluxe.ng</span>
         </Link>
 
+        {/* Desktop Navigation */}
         <nav className="hidden items-center gap-6 md:flex">
           {navLinks.map((link) => (
             <Link
@@ -101,8 +112,69 @@ export default function Header() {
               />
             </svg>
           </Link>
+          
+          {/* Mobile Hamburger Menu Button */}
+          <button
+            onClick={toggleMobileMenu}
+            className="md:hidden text-gray-700 hover:text-pink-500"
+            aria-label="Toggle menu"
+          >
+            {isMobileMenuOpen ? (
+              <svg
+                className="h-6 w-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            ) : (
+              <svg
+                className="h-6 w-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              </svg>
+            )}
+          </button>
         </div>
       </div>
+
+      {/* Mobile Navigation Menu */}
+      {isMobileMenuOpen && (
+        <nav className="md:hidden border-t border-gray-200 bg-white">
+          <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col space-y-4">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={closeMobileMenu}
+                  className={`text-base font-medium transition-colors ${
+                    pathname === link.href
+                      ? 'text-pink-500'
+                      : 'text-gray-700 hover:text-pink-500'
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </nav>
+      )}
     </header>
   );
 }
