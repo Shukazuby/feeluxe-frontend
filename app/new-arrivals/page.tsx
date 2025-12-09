@@ -1,10 +1,39 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import ProductCard from '../components/ProductCard';
-import { newArrivals } from '../data/products';
+import { useApi } from '../hooks/useApi';
+import { Product, getProductId } from '../types';
 
 export default function NewArrivalsPage() {
+  const api = useApi();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchNewArrivals = async () => {
+      try {
+        const response = await api.products.getNewArrivals();
+        if (response.success && response.data) {
+          const productsData = Array.isArray(response.data) 
+            ? response.data 
+            : response.data.data || [];
+          setProducts(productsData);
+        }
+      } catch (error) {
+        console.error('Error fetching new arrivals:', error);
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNewArrivals();
+  }, []);
+
   return (
     <div className="flex min-h-screen flex-col bg-white">
       <Header />
@@ -25,11 +54,21 @@ export default function NewArrivalsPage() {
         {/* Products Section */}
         <section className="py-12">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {newArrivals.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <div className="text-gray-500">Loading new arrivals...</div>
+              </div>
+            ) : products.length > 0 ? (
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                {products.map((product) => (
+                  <ProductCard key={getProductId(product)} product={product} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-gray-500">
+                No new arrivals available at the moment.
+              </div>
+            )}
 
             <div className="mt-16 overflow-hidden rounded-2xl bg-gradient-to-r from-pink-50 via-white to-pink-50 border border-pink-100">
               <div className="grid grid-cols-1 items-center gap-8 px-6 py-10 sm:px-10 lg:grid-cols-3">

@@ -1,7 +1,80 @@
+'use client';
+
+import { useState, FormEvent } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import { contactApi } from '../lib/api/contact';
 
 export default function ContactPage() {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    subject: '',
+    message: '',
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    // Clear error when user starts typing
+    if (error) setError(null);
+    if (success) setSuccess(false);
+  };
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(false);
+
+    // Validation
+    if (!formData.name.trim() || !formData.email.trim() || !formData.subject.trim() || !formData.message.trim()) {
+      setError('Please fill in all fields');
+      return;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await contactApi.create({
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        subject: formData.subject.trim(),
+        message: formData.message.trim(),
+      });
+
+      if (response.success) {
+        setSuccess(true);
+        // Reset form
+        setFormData({
+          name: '',
+          email: '',
+          subject: '',
+          message: '',
+        });
+        // Clear success message after 5 seconds
+        setTimeout(() => setSuccess(false), 5000);
+      } else {
+        setError(response.message || 'Failed to send message. Please try again.');
+      }
+    } catch (err: any) {
+      console.error('Error submitting contact form:', err);
+      setError(err.message || 'Failed to send message. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="flex min-h-screen flex-col bg-white">
       <Header />
@@ -27,40 +100,71 @@ export default function ContactPage() {
                 <h2 className="mb-6 text-2xl font-bold text-gray-900">
                   Send us a Message
                 </h2>
-                <form className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  {/* Success Message */}
+                  {success && (
+                    <div className="rounded-lg bg-green-50 p-4 text-green-800">
+                      <p className="font-medium">Message sent successfully! We&apos;ll get back to you soon.</p>
+                    </div>
+                  )}
+
+                  {/* Error Message */}
+                  {error && (
+                    <div className="rounded-lg bg-red-50 p-4 text-red-800">
+                      <p className="font-medium">{error}</p>
+                    </div>
+                  )}
+
                   <div>
                     <input
                       type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
                       placeholder="Your Name"
-                      className="w-full rounded border border-gray-300 bg-white px-4 py-3 text-gray-700 placeholder-gray-400 focus:border-pink-500 focus:outline-none focus:ring-1 focus:ring-pink-500"
+                      required
+                      className="w-full rounded border border-gray-300 bg-white px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-pink-500 focus:outline-none focus:ring-1 focus:ring-pink-500"
                     />
                   </div>
                   <div>
                     <input
                       type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
                       placeholder="Your Email"
-                      className="w-full rounded border border-gray-300 bg-white px-4 py-3 text-gray-700 placeholder-gray-400 focus:border-pink-500 focus:outline-none focus:ring-1 focus:ring-pink-500"
+                      required
+                      className="w-full rounded border border-gray-300 bg-white px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-pink-500 focus:outline-none focus:ring-1 focus:ring-pink-500"
                     />
                   </div>
                   <div>
                     <input
                       type="text"
+                      name="subject"
+                      value={formData.subject}
+                      onChange={handleChange}
                       placeholder="Subject"
-                      className="w-full rounded border border-gray-300 bg-white px-4 py-3 text-gray-700 placeholder-gray-400 focus:border-pink-500 focus:outline-none focus:ring-1 focus:ring-pink-500"
+                      required
+                      className="w-full rounded border border-gray-300 bg-white px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-pink-500 focus:outline-none focus:ring-1 focus:ring-pink-500"
                     />
                   </div>
                   <div>
                     <textarea
+                      name="message"
+                      value={formData.message}
+                      onChange={handleChange}
                       placeholder="Your Message"
                       rows={6}
-                      className="w-full resize-none rounded border border-gray-300 bg-white px-4 py-3 text-gray-700 placeholder-gray-400 focus:border-pink-500 focus:outline-none focus:ring-1 focus:ring-pink-500"
+                      required
+                      className="w-full resize-none rounded border border-gray-300 bg-white px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-pink-500 focus:outline-none focus:ring-1 focus:ring-pink-500"
                     ></textarea>
                   </div>
                   <button
                     type="submit"
-                    className="w-full rounded-lg bg-gradient-to-r from-pink-500 to-pink-600 px-6 py-3 font-semibold text-white transition-colors hover:from-pink-600 hover:to-pink-700"
+                    disabled={loading}
+                    className="w-full rounded-lg bg-gradient-to-r from-pink-500 to-pink-600 px-6 py-3 font-semibold text-white transition-colors hover:from-pink-600 hover:to-pink-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    Send Message
+                    {loading ? 'Sending...' : 'Send Message'}
                   </button>
                 </form>
               </div>

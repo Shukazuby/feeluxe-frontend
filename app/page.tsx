@@ -1,11 +1,42 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import ProductCard from './components/ProductCard';
-import { featuredProducts } from './data/products';
+import { useApi } from './hooks/useApi';
+import { Product, getProductId } from './types';
 
 export default function Home() {
+  const api = useApi();
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFeatured = async () => {
+      try {
+        const response = await api.products.getFeatured();
+        if (response.success && response.data) {
+          // Handle both response.data.data (array) and response.data (object with data property)
+          const products = Array.isArray(response.data) 
+            ? response.data 
+            : response.data.data || [];
+          setFeaturedProducts(products.slice(0, 4)); // Limit to 4 featured products
+        }
+      } catch (error) {
+        console.error('Error fetching featured products:', error);
+        // Fallback to empty array on error
+        setFeaturedProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFeatured();
+  }, []);
+
   return (
     <div className="flex min-h-screen flex-col bg-white">
       <Header />
@@ -46,11 +77,21 @@ export default function Home() {
             <h2 className="mb-12 text-center text-4xl font-bold text-gray-900">
               Our Featured Scarves
             </h2>
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {featuredProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <div className="text-gray-500">Loading featured products...</div>
+              </div>
+            ) : featuredProducts.length > 0 ? (
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                {featuredProducts.map((product) => (
+                  <ProductCard key={getProductId(product)} product={product} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-gray-500">
+                No featured products available at the moment.
+              </div>
+            )}
           </div>
         </section>
 
@@ -73,7 +114,7 @@ export default function Home() {
                 <div>
                   <div className="mb-4 aspect-square overflow-hidden rounded-lg bg-gray-200">
                     <Image
-                      src="/heritage-vintage.jpg"
+                      src="http://res.cloudinary.com/dkqtwvhq2/image/upload/v1765297289/inflow/images/gj04rs2obbasxynskxa3.jpg"
                       alt="Authentic Vintage"
                       width={300}
                       height={300}
@@ -91,7 +132,7 @@ export default function Home() {
                 <div>
                   <div className="mb-4 aspect-square overflow-hidden rounded-lg bg-gray-200">
                     <Image
-                      src="/heritage-nigerian.jpg"
+                      src="http://res.cloudinary.com/dkqtwvhq2/image/upload/v1765297289/inflow/images/gj04rs2obbasxynskxa3.jpg"
                       alt="Nigerian Heritage"
                       width={300}
                       height={300}

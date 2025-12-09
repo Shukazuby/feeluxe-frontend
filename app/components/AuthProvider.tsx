@@ -1,48 +1,104 @@
-/* Simple client-only auth gate: stores a fake token in localStorage to gate actions like add-to-cart/checkout.
- * This is a UX layer until real backend auth is wired. */
 'use client';
 
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { authApi } from '../lib/api/auth';
+import { ApiError } from '../lib/api/config';
 
 type AuthMode = 'login' | 'signup';
 
 interface AuthContextValue {
   isAuthenticated: boolean;
+  token: string | null;
   openAuthModal: (mode?: AuthMode) => void;
   closeAuthModal: () => void;
   requireAuth: (action: () => void) => void;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [mode, setMode] = useState<AuthMode>('login');
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('feeluxe-token') : null;
-    setIsAuthenticated(Boolean(token));
+    const storedToken = typeof window !== 'undefined' ? localStorage.getItem('feeluxe-token') : null;
+    if (storedToken) {
+      setToken(storedToken);
+      setIsAuthenticated(true);
+    }
   }, []);
 
   const openAuthModal = useCallback((nextMode: AuthMode = 'login') => {
     setMode(nextMode);
     setShowModal(true);
+    setError(null);
   }, []);
 
-  const closeAuthModal = useCallback(() => setShowModal(false), []);
+  const closeAuthModal = useCallback(() => {
+    setShowModal(false);
+    setError(null);
+  }, []);
+
+  const logout = useCallback(() => {
+    localStorage.removeItem('feeluxe-token');
+    setToken(null);
+    setIsAuthenticated(false);
+  }, []);
 
   const completeAuth = useCallback(
-    (form: FormData) => {
-      // For now, we simply set a local token to gate the UX.
-      const email = form.get('email')?.toString() || '';
-      if (email) {
-        localStorage.setItem('feeluxe-token', `guest-${email}`);
-        setIsAuthenticated(true);
-        setShowModal(false);
+    async (form: FormData) => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        if (mode === 'login') {
+          const email = form.get('email')?.toString() || '';
+          const password = form.get('password')?.toString() || '';
+          
+          const response = await authApi.login({ email, password });
+          
+          if (response.success && response.data?.token) {
+            localStorage.setItem('feeluxe-token', response.data.token);
+            setToken(response.data.token);
+            setIsAuthenticated(true);
+            setShowModal(false);
+          }
+        } else {
+          const name = form.get('name')?.toString() || '';
+          const email = form.get('email')?.toString() || '';
+          const password = form.get('password')?.toString() || '';
+          const phone = form.get('phone')?.toString() || '';
+          const address = form.get('address')?.toString() || '';
+          
+          const response = await authApi.signup({ name, email, password, phone, address });
+          
+          if (response.success && response.data?.token) {
+            localStorage.setItem('feeluxe-token', response.data.token);
+            setToken(response.data.token);
+            setIsAuthenticated(true);
+            setShowModal(false);
+            // Navigate to account page after successful signup
+            router.push('/account');
+          }
+        }
+      } catch (err) {
+        if (err instanceof ApiError) {
+          setError(err.message || 'An error occurred. Please try again.');
+        } else {
+          setError('Network error. Please check your connection.');
+        }
+      } finally {
+        setLoading(false);
       }
     },
-    [],
+    [mode],
   );
 
   const requireAuth = useCallback(
@@ -68,17 +124,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = useMemo(
     () => ({
       isAuthenticated,
+      token,
       openAuthModal,
       closeAuthModal,
       requireAuth,
+      logout,
     }),
-    [isAuthenticated, openAuthModal, closeAuthModal, requireAuth],
+    [isAuthenticated, token, openAuthModal, closeAuthModal, requireAuth, logout],
   );
 
   return (
     <AuthContext.Provider value={value}>
       {children}
-      {showModal && <AuthModal mode={mode} onClose={closeAuthModal} onSubmit={completeAuth} onSwitch={openAuthModal} />}
+      {showModal && (
+        <AuthModal
+          mode={mode}
+          onClose={closeAuthModal}
+          onSubmit={completeAuth}
+          onSwitch={openAuthModal}
+          error={error}
+          loading={loading}
+        />
+      )}
     </AuthContext.Provider>
   );
 }
@@ -94,11 +161,15 @@ function AuthModal({
   onClose,
   onSubmit,
   onSwitch,
+  error,
+  loading,
 }: {
   mode: AuthMode;
   onClose: () => void;
   onSubmit: (form: FormData) => void;
   onSwitch: (mode: AuthMode) => void;
+  error: string | null;
+  loading: boolean;
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
@@ -114,6 +185,11 @@ function AuthModal({
             ? 'Sign in to save your cart and proceed to checkout.'
             : 'Create an account to save your cart and place orders.'}
         </p>
+        {error && (
+          <div className="mt-4 rounded-lg bg-red-50 border border-red-200 p-3">
+            <p className="text-sm text-red-600">{error}</p>
+          </div>
+        )}
         <form
           className="mt-6 space-y-4"
           onSubmit={(e) => {
@@ -144,6 +220,18 @@ function AuthModal({
               placeholder="you@example.com"
             />
           </div>
+          {mode === 'signup' && (
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Phone</label>
+              <input
+                name="phone"
+                type="tel"
+                required
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-pink-500 focus:outline-none focus:ring-1 focus:ring-pink-500 bg-white"
+                placeholder="+234 801 234 5678"
+              />
+            </div>
+          )}
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">Password</label>
             <input
@@ -168,9 +256,10 @@ function AuthModal({
           )}
           <button
             type="submit"
-            className="w-full rounded-lg bg-pink-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-pink-600"
+            disabled={loading}
+            className="w-full rounded-lg bg-pink-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {mode === 'login' ? 'Login to continue' : 'Create account'}
+            {loading ? 'Please wait...' : mode === 'login' ? 'Login to continue' : 'Create account'}
           </button>
         </form>
         <div className="mt-4 text-center text-sm text-gray-600">

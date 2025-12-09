@@ -1,28 +1,62 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import ProductCard from '../components/ProductCard';
-import { products } from '../data/products';
+import { useApi } from '../hooks/useApi';
+import { Product, getProductId, getProductPrice } from '../types';
 
 export default function ShopAllPage() {
+  const api = useApi();
   const [sortBy, setSortBy] = useState('newest');
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const sortedProducts = [...products].sort((a, b) => {
-    switch (sortBy) {
-      case 'newest':
-        return 0;
-      case 'price-low':
-        return a.price - b.price;
-      case 'price-high':
-        return b.price - a.price;
-      case 'name':
-        return a.name.localeCompare(b.name);
-      default:
-        return 0;
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await api.products.getAll();
+      if (response.success && response.data) {
+        setProducts(response.data.data || []);
+      } else {
+        setError('Failed to load products. Please try again.');
+      }
+    } catch (err: any) {
+      console.error('Error fetching products:', err);
+      setError('Failed to load products. Please try again.');
+    } finally {
+      setLoading(false);
     }
-  });
+  };
+
+  const sortedProducts = useMemo(() => {
+    const sorted = [...products].sort((a, b) => {
+      switch (sortBy) {
+        case 'newest':
+          // Sort by createdAt if available, otherwise keep original order
+          if (a.createdAt && b.createdAt) {
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          }
+          return 0;
+        case 'price-low':
+          return getProductPrice(a) - getProductPrice(b);
+        case 'price-high':
+          return getProductPrice(b) - getProductPrice(a);
+        case 'name':
+          return a.name.localeCompare(b.name);
+        default:
+          return 0;
+      }
+    });
+    return sorted;
+  }, [products, sortBy]);
 
   return (
     <div className="flex min-h-screen flex-col bg-white">
@@ -65,11 +99,31 @@ export default function ShopAllPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {sortedProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <div className="text-gray-500">Loading products...</div>
+              </div>
+            ) : error ? (
+              <div className="rounded-lg bg-red-50 border border-red-200 p-4 text-center">
+                <p className="text-sm text-red-600">{error}</p>
+                <button
+                  onClick={fetchProducts}
+                  className="mt-4 rounded-lg bg-pink-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-pink-600"
+                >
+                  Try Again
+                </button>
+              </div>
+            ) : sortedProducts.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-gray-500 text-lg">No products found.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                {sortedProducts.map((product) => (
+                  <ProductCard key={getProductId(product)} product={product} />
+                ))}
+              </div>
+            )}
           </div>
         </section>
       </main>
