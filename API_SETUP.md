@@ -2,20 +2,20 @@
 
 ## Base URL Configuration
 
-The API base URL is now set to: **https://b19815689231.ngrok-free.app**
+The API base URL is now set to: **https://feeluxe-backend.onrender.com**
 
 ### To Change the Base URL Anytime:
 
 1. **Option 1: Environment Variable (Recommended)**
    Create a `.env.local` file in the frontend root:
    ```env
-   NEXT_PUBLIC_API_URL=https://your-new-url.com
+   NEXT_PUBLIC_API=https://your-new-url.com
    ```
 
 2. **Option 2: Direct Code Change**
    Edit `app/lib/api/config.ts`:
    ```typescript
-   export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://your-new-url.com';
+   export const API_BASE_URL = process.env.NEXT_PUBLIC_API || 'https://your-new-url.com';
    ```
 
 ## What's Been Integrated
