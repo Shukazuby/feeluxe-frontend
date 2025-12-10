@@ -12,7 +12,7 @@ export default function AboutUsPage() {
         <section className="relative h-[500px] w-full overflow-hidden">
           <div className="absolute inset-0">
             <Image
-              src="/about-hero.jpg"
+              src="http://res.cloudinary.com/dkqtwvhq2/image/upload/v1765348757/inflow/images/miee3q1m69s6xjn8edov.png"
               alt="Woman wearing scarf"
               fill
               className="object-cover"

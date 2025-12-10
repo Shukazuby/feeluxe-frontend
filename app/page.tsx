@@ -114,7 +114,7 @@ export default function Home() {
                 <div>
                   <div className="mb-4 aspect-square overflow-hidden rounded-lg bg-gray-200">
                     <Image
-                      src="http://res.cloudinary.com/dkqtwvhq2/image/upload/v1765297289/inflow/images/gj04rs2obbasxynskxa3.jpg"
+                      src="http://res.cloudinary.com/dkqtwvhq2/image/upload/v1765348359/inflow/images/lfpajsbbbheq7vw7occq.png"
                       alt="Authentic Vintage"
                       width={300}
                       height={300}
@@ -132,7 +132,7 @@ export default function Home() {
                 <div>
                   <div className="mb-4 aspect-square overflow-hidden rounded-lg bg-gray-200">
                     <Image
-                      src="http://res.cloudinary.com/dkqtwvhq2/image/upload/v1765297289/inflow/images/gj04rs2obbasxynskxa3.jpg"
+                      src="http://res.cloudinary.com/dkqtwvhq2/image/upload/v1765348526/inflow/images/lqxw2tcl9ym7iihdhmv5.png"
                       alt="Nigerian Heritage"
                       width={300}
                       height={300}
