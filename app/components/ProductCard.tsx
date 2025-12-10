@@ -21,6 +21,7 @@ export default function ProductCard({ product, onWishlistChange }: ProductCardPr
   const [loading, setLoading] = useState(false);
   const [checkingWishlist, setCheckingWishlist] = useState(true);
   const [addingToCart, setAddingToCart] = useState(false);
+  const [cartMessage, setCartMessage] = useState<string | null>(null);
 
   const productId = getProductId(product);
   const productPrice = getProductPrice(product);
@@ -108,6 +109,8 @@ export default function ProductCard({ product, onWishlistChange }: ProductCardPr
     if (!isAuthenticated) {
       setAddingToCart(true);
       guestCart.add(product, 1);
+      setCartMessage('Added to cart');
+      setTimeout(() => setCartMessage(null), 1200);
       setAddingToCart(false);
       return;
     }
@@ -120,6 +123,8 @@ export default function ProductCard({ product, onWishlistChange }: ProductCardPr
           productId,
           quantity: 1,
         });
+        setCartMessage('Added to cart');
+        setTimeout(() => setCartMessage(null), 1200);
       } catch (error) {
         console.error('Error adding to cart:', error);
       } finally {
@@ -217,6 +222,9 @@ export default function ProductCard({ product, onWishlistChange }: ProductCardPr
             {formatPrice(productPrice)}
           </p>
         </Link>
+        {cartMessage && (
+          <p className="mt-2 text-xs font-semibold text-pink-600">{cartMessage}</p>
+        )}
       </div>
     </div>
   );
