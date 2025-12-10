@@ -7,6 +7,8 @@ export const API_ENDPOINTS = {
   AUTH: {
     LOGIN: `${API_BASE_URL}/auth/login`,
     SIGNUP: `${API_BASE_URL}/customers`,
+    FORGOT_PASSWORD: `${API_BASE_URL}/auth/forgot-password`,
+    RESET_PASSWORD: `${API_BASE_URL}/auth/reset-password`,
   },
   // Products
   PRODUCTS: {
@@ -21,6 +23,7 @@ export const API_ENDPOINTS = {
     ME: `${API_BASE_URL}/customers/me`,
     UPDATE: `${API_BASE_URL}/customers/me`,
     CHANGE_PASSWORD: `${API_BASE_URL}/customers/change-password`,
+    DELETE: `${API_BASE_URL}/customers/me`,
     WISHLIST: `${API_BASE_URL}/customers/wishlist`,
     ADD_TO_WISHLIST: `${API_BASE_URL}/customers/wishlist`,
     REMOVE_FROM_WISHLIST: (productId: string) => `${API_BASE_URL}/customers/wishlist/${productId}`,

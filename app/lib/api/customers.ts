@@ -81,5 +81,12 @@ export const customersApi = {
       headers: getAuthHeaders(token),
     });
   },
+
+  deleteAccount: async (token: string): Promise<ApiResponse> => {
+    return apiRequest(API_ENDPOINTS.CUSTOMERS.DELETE, {
+      method: 'DELETE',
+      headers: getAuthHeaders(token),
+    });
+  },
 };
 

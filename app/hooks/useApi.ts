@@ -39,6 +39,7 @@ export function useApi() {
         customersApi.addToWishlist(ensureAuth(), payload),
       removeFromWishlist: (productId: string) =>
         customersApi.removeFromWishlist(ensureAuth(), productId),
+      deleteAccount: () => customersApi.deleteAccount(ensureAuth()),
     },
 
     // Cart (requires auth)

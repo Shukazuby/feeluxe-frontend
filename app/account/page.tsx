@@ -27,6 +27,7 @@ export default function AccountPage() {
     phone: '',
     address: '',
   });
+  const [deleting, setDeleting] = useState(false);
 
   const [orders, setOrders] = useState<ApiOrder[]>([]);
   const [wishlistItems, setWishlistItems] = useState<Product[]>([]);
@@ -106,6 +107,37 @@ export default function AccountPage() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (!isAuthenticated) {
+      requireAuth(() => {});
+      return;
+    }
+    const confirmDelete = window.confirm(
+      'Are you sure you want to delete your account? This action cannot be undone.'
+    );
+    if (!confirmDelete) return;
+
+    try {
+      setDeleting(true);
+      setError(null);
+      setSuccess(null);
+
+      const resp = await api.customers.deleteAccount();
+      if (resp.success) {
+        setSuccess('Account deleted. Redirecting...');
+        // Logout and redirect to home
+        logout();
+        router.push('/');
+      } else {
+        setError(resp.message || 'Failed to delete account. Please try again.');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete account. Please try again.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-NG', {
       style: 'currency',
@@ -162,48 +194,48 @@ export default function AccountPage() {
                         return (
                           <div
                             key={orderId}
-                            className="flex items-center gap-4 rounded-lg border border-gray-200 bg-white p-4"
-                          >
+                        className="flex items-center gap-4 rounded-lg border border-gray-200 bg-white p-4"
+                      >
                             {firstItem?.imageUrl && (
-                              <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full bg-gray-100">
-                                <Image
+                        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full bg-gray-100">
+                          <Image
                                   src={firstItem.imageUrl}
                                   alt={firstItem.name}
-                                  fill
-                                  className="object-cover"
-                                />
-                              </div>
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
                             )}
-                            <div className="flex-1">
-                              <h3 className="font-semibold text-gray-900">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-gray-900">
                                 {firstItem?.name || 'Order Items'}
-                              </h3>
-                              <p className="text-sm text-gray-600">
+                          </h3>
+                          <p className="text-sm text-gray-600">
                                 Order #{order.orderNumber} - Placed on {orderDate}
-                              </p>
-                              <p className="mt-1 text-sm font-semibold text-gray-900">
+                          </p>
+                          <p className="mt-1 text-sm font-semibold text-gray-900">
                                 {formatPrice(order.totalAmount)}
-                              </p>
-                            </div>
+                          </p>
+                        </div>
                             <Link
                               href={`/orders/${orderId}`}
                               className="flex h-10 w-10 items-center justify-center rounded-full bg-pink-100 text-pink-600 hover:bg-pink-200"
                             >
-                              <svg
-                                className="h-5 w-5"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                                />
-                              </svg>
+                          <svg
+                            className="h-5 w-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                            />
+                          </svg>
                             </Link>
-                          </div>
+                      </div>
                         );
                       })
                     ) : (
@@ -224,8 +256,8 @@ export default function AccountPage() {
                     Wishlist / Saved Items
                   </h2>
                   {wishlistItems.length > 0 ? (
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                      {wishlistItems.map((product) => (
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    {wishlistItems.map((product) => (
                         <ProductCard 
                           key={getProductId(product)} 
                           product={product}
@@ -245,8 +277,8 @@ export default function AccountPage() {
                             }
                           }}
                         />
-                      ))}
-                    </div>
+                    ))}
+                  </div>
                   ) : (
                     <p className="text-gray-500 py-4">Your wishlist is empty.</p>
                   )}
@@ -355,6 +387,26 @@ export default function AccountPage() {
                     >
                       Change Password
                     </Link>
+                    <div className="border-t border-gray-200 pt-6">
+                      <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4">
+                        <div className="mt-1 flex h-6 w-6 items-center justify-center rounded-full bg-red-100 text-red-600 text-sm font-bold">
+                          !
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-red-700">Delete Account</p>
+                          <p className="mt-1 text-sm text-red-600">
+                            This action is irreversible and will remove your account.
+                          </p>
+                          <button
+                            onClick={handleDeleteAccount}
+                            disabled={deleting}
+                            className="mt-3 inline-flex items-center rounded-lg border border-red-300 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {deleting ? 'Deleting...' : 'Delete my account'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </form>
                   
                   {/* Logout Button */}

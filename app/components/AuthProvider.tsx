@@ -1,11 +1,12 @@
 'use client';
 
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { authApi } from '../lib/api/auth';
 import { ApiError } from '../lib/api/config';
 
-type AuthMode = 'login' | 'signup';
+type AuthMode = 'login' | 'signup' | 'forgot';
 
 interface AuthContextValue {
   isAuthenticated: boolean;
@@ -26,6 +27,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<AuthMode>('login');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [forgotStep, setForgotStep] = useState<1 | 2>(1);
+  const [forgotEmail, setForgotEmail] = useState('');
 
   useEffect(() => {
     const storedToken = typeof window !== 'undefined' ? localStorage.getItem('feeluxe-token') : null;
@@ -39,11 +43,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setMode(nextMode);
     setShowModal(true);
     setError(null);
+    setSuccess(null);
+    if (nextMode === 'forgot') {
+      setForgotStep(1);
+      setForgotEmail('');
+    }
   }, []);
 
   const closeAuthModal = useCallback(() => {
     setShowModal(false);
     setError(null);
+    setSuccess(null);
+    setForgotStep(1);
+    setForgotEmail('');
   }, []);
 
   const logout = useCallback(() => {
@@ -56,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (form: FormData) => {
       setLoading(true);
       setError(null);
+      setSuccess(null);
       
       try {
         if (mode === 'login') {
@@ -70,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setIsAuthenticated(true);
             setShowModal(false);
           }
-        } else {
+        } else if (mode === 'signup') {
           const name = form.get('name')?.toString() || '';
           const email = form.get('email')?.toString() || '';
           const password = form.get('password')?.toString() || '';
@@ -79,6 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           const response = await authApi.signup({ name, email, password, phone, address });
           
+          // Some signup responses may not include a token; fall back to logging in immediately.
           if (response.success && response.data?.token) {
             localStorage.setItem('feeluxe-token', response.data.token);
             setToken(response.data.token);
@@ -86,6 +100,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setShowModal(false);
             // Navigate to account page after successful signup
             router.push('/account');
+          } else if (response.success) {
+            // Attempt a login using the same credentials to fetch a token and proceed.
+            const loginResp = await authApi.login({ email, password });
+            if (loginResp.success && loginResp.data?.token) {
+              localStorage.setItem('feeluxe-token', loginResp.data.token);
+              setToken(loginResp.data.token);
+              setIsAuthenticated(true);
+              setShowModal(false);
+              router.push('/account');
+            } else {
+              setError('Signup succeeded but login failed. Please try signing in.');
+            }
+          }
+        } else if (mode === 'forgot') {
+          const emailInput = form.get('email')?.toString() || forgotEmail || '';
+          const email = emailInput.trim();
+          if (forgotStep === 1) {
+            if (!email) {
+              setError('Please enter your email.');
+            } else {
+              const response = await authApi.forgotPassword({ email });
+              if (response.success) {
+                setForgotEmail(email);
+                setForgotStep(2);
+                setSuccess('We sent a 4-digit code to your email. Enter it below with your new password.');
+              } else {
+                setError(response.message || 'Failed to send reset code. Please try again.');
+              }
+            }
+          } else {
+            const code = form.get('code')?.toString() || '';
+            const password = form.get('password')?.toString() || '';
+            if (!code || !password) {
+              setError('Enter the 4-digit code and a new password.');
+            } else {
+              const response = await authApi.resetPassword({ email, code, password });
+              if (response.success) {
+                setSuccess('Password reset successful. You can now log in.');
+                setMode('login');
+                setForgotStep(1);
+                setForgotEmail('');
+              } else {
+                setError(response.message || 'Failed to reset password. Please try again.');
+              }
+            }
           }
         }
       } catch (err) {
@@ -98,7 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false);
       }
     },
-    [mode],
+    [mode, forgotStep, forgotEmail],
   );
 
   const requireAuth = useCallback(
@@ -143,7 +202,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           onSubmit={completeAuth}
           onSwitch={openAuthModal}
           error={error}
+          success={success}
           loading={loading}
+          forgotStep={forgotStep}
+          forgotEmail={forgotEmail}
         />
       )}
     </AuthContext.Provider>
@@ -162,32 +224,52 @@ function AuthModal({
   onSubmit,
   onSwitch,
   error,
+  success,
   loading,
+  forgotStep,
+  forgotEmail,
 }: {
   mode: AuthMode;
   onClose: () => void;
   onSubmit: (form: FormData) => void;
   onSwitch: (mode: AuthMode) => void;
   error: string | null;
+  success: string | null;
   loading: boolean;
+  forgotStep: 1 | 2;
+  forgotEmail: string;
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-900">{mode === 'login' ? 'Login' : 'Create an account'}</h2>
+          <h2 className="text-xl font-bold text-gray-900">
+            {mode === 'login' && 'Login'}
+            {mode === 'signup' && 'Create an account'}
+            {mode === 'forgot' && 'Reset your password'}
+          </h2>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
             ✕
           </button>
         </div>
         <p className="mt-2 text-sm text-gray-600">
-          {mode === 'login'
-            ? 'Sign in to save your cart and proceed to checkout.'
-            : 'Create an account to save your cart and place orders.'}
+          {mode === 'login' &&
+            'Sign in to save your cart and proceed to checkout.'}
+          {mode === 'signup' &&
+            'Create an account to save your cart and place orders.'}
+          {mode === 'forgot' &&
+            (forgotStep === 1
+              ? 'Enter your email and we will send you a 4-digit reset code.'
+              : 'Enter the 4-digit code from your email and your new password.')}
         </p>
         {error && (
           <div className="mt-4 rounded-lg bg-red-50 border border-red-200 p-3">
             <p className="text-sm text-red-600">{error}</p>
+          </div>
+        )}
+        {success && (
+          <div className="mt-4 rounded-lg bg-green-50 border border-green-200 p-3">
+            <p className="text-sm text-green-600">{success}</p>
           </div>
         )}
         <form
@@ -216,6 +298,7 @@ function AuthModal({
               name="email"
               type="email"
               required
+              defaultValue={mode === 'forgot' && forgotEmail ? forgotEmail : undefined}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-pink-500 focus:outline-none focus:ring-1 focus:ring-pink-500 bg-white"
               placeholder="you@example.com"
             />
@@ -232,16 +315,64 @@ function AuthModal({
               />
             </div>
           )}
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Password</label>
-            <input
-              name="password"
-              type="password"
-              required
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-pink-500 focus:outline-none focus:ring-1 focus:ring-pink-500 bg-white"
-              placeholder="••••••••"
-            />
-          </div>
+          {mode !== 'forgot' && (
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Password</label>
+              <input
+                name="password"
+                type="password"
+                required
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-pink-500 focus:outline-none focus:ring-1 focus:ring-pink-500 bg-white"
+                placeholder="••••••••"
+              />
+            </div>
+          )}
+          {mode === 'login' && (
+            <div className="flex justify-end text-xs">
+              <button
+                type="button"
+                className="text-pink-500 hover:text-pink-600 font-semibold"
+                onClick={() => onSwitch('forgot')}
+              >
+                Forgot password?
+              </button>
+            </div>
+          )}
+          {mode === 'forgot' && (
+            <>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  {forgotStep === 1 ? 'We will send a 4-digit code to this email' : '4-digit code'}
+                </label>
+                {forgotStep === 1 ? (
+                  <p className="text-xs text-gray-500">Enter your email above, then submit to receive the code.</p>
+                ) : (
+                  <input
+                    name="code"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={4}
+                    required
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-pink-500 focus:outline-none focus:ring-1 focus:ring-pink-500 bg-white"
+                    placeholder="1234"
+                  />
+                )}
+              </div>
+              {forgotStep === 2 && (
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">New password</label>
+                  <input
+                    name="password"
+                    type="password"
+                    required
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-pink-500 focus:outline-none focus:ring-1 focus:ring-pink-500 bg-white"
+                    placeholder="New password"
+                  />
+                </div>
+              )}
+            </>
+          )}
           {mode === 'signup' && (
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">Address</label>
@@ -259,24 +390,43 @@ function AuthModal({
             disabled={loading}
             className="w-full rounded-lg bg-pink-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? 'Please wait...' : mode === 'login' ? 'Login to continue' : 'Create account'}
+            {loading
+              ? 'Please wait...'
+              : mode === 'login'
+              ? 'Login to continue'
+              : mode === 'signup'
+              ? 'Create account'
+              : forgotStep === 1
+              ? 'Send reset code'
+              : 'Reset password'}
           </button>
         </form>
         <div className="mt-4 text-center text-sm text-gray-600">
-          {mode === 'login' ? (
+          {mode === 'login' && (
             <>
               New here?{' '}
               <button className="font-semibold text-pink-500 hover:text-pink-600" onClick={() => onSwitch('signup')}>
                 Create an account
               </button>
             </>
-          ) : (
+          )}
+          {mode === 'signup' && (
             <>
               Already have an account?{' '}
               <button className="font-semibold text-pink-500 hover:text-pink-600" onClick={() => onSwitch('login')}>
                 Login
               </button>
             </>
+          )}
+          {mode === 'forgot' && (
+            <div className="flex items-center justify-between text-sm text-gray-600">
+              <button className="font-semibold text-pink-500 hover:text-pink-600" onClick={() => onSwitch('login')}>
+                Back to login
+              </button>
+              <button className="font-semibold text-pink-500 hover:text-pink-600" onClick={() => onSwitch('signup')}>
+                Create account
+              </button>
+            </div>
           )}
         </div>
       </div>
