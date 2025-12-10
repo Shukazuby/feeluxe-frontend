@@ -49,6 +49,10 @@ export const API_ENDPOINTS = {
     LIST: `${API_BASE_URL}/contact`,
     RESOLVE: (id: string) => `${API_BASE_URL}/contact/${id}/resolve`,
   },
+  // Newsletter
+  NEWSLETTER: {
+    SUBSCRIBE: `${API_BASE_URL}/newsletter/subscribe`,
+  },
 };
 
 // Helper function to get auth headers

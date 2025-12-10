@@ -1,6 +1,47 @@
+'use client';
+
+import { useState, FormEvent } from 'react';
 import Link from 'next/link';
+import { newsletterApi } from '../lib/api/newsletter';
 
 export default function Footer() {
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(false);
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await newsletterApi.subscribe({ email: email.trim() });
+
+      if (response.success) {
+        setSuccess(true);
+        setEmail('');
+        // Clear success message after 5 seconds
+        setTimeout(() => setSuccess(false), 5000);
+      } else {
+        setError(response.message || 'Failed to subscribe. Please try again.');
+      }
+    } catch (err: any) {
+      console.error('Error subscribing to newsletter:', err);
+      setError(err.message || 'Failed to subscribe. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <footer className="bg-pink-50">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
@@ -76,18 +117,38 @@ export default function Footer() {
             <p className="mb-4 text-sm text-gray-600">
               Get exclusive offers and style tips.
             </p>
-            <form className="flex gap-2">
-              <input
-                type="email"
-                placeholder="Your email"
-                className="flex-1 rounded border border-gray-300 px-3 py-2 text-sm focus:border-pink-500 focus:outline-none focus:ring-1 focus:ring-pink-500"
-              />
-              <button
-                type="submit"
-                className="rounded bg-pink-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-pink-600"
-              >
-                Subscribe
-              </button>
+            <form onSubmit={handleSubmit} className="space-y-2">
+              {success && (
+                <div className="rounded-lg bg-green-50 p-2 text-xs text-green-800">
+                  Successfully subscribed!
+                </div>
+              )}
+              {error && (
+                <div className="rounded-lg bg-red-50 p-2 text-xs text-red-800">
+                  {error}
+                </div>
+              )}
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (error) setError(null);
+                    if (success) setSuccess(false);
+                  }}
+                  placeholder="Your email"
+                  required
+                  className="flex-1 rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-pink-500 focus:outline-none focus:ring-1 focus:ring-pink-500"
+                />
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="rounded bg-pink-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-pink-600 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {loading ? '...' : 'Subscribe'}
+                </button>
+              </div>
             </form>
           </div>
         </div>
