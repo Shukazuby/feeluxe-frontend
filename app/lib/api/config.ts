@@ -15,6 +15,7 @@ export const API_ENDPOINTS = {
     LIST: `${API_BASE_URL}/product`,
     FEATURED: `${API_BASE_URL}/product/featured/list`,
     NEW_ARRIVALS: `${API_BASE_URL}/product/new-arrivals`,
+    SEARCH: `${API_BASE_URL}/product/search`,
     BY_ID: (id: string) => `${API_BASE_URL}/product/${id}`,
   },
   // Customers

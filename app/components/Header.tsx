@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from './AuthProvider';
@@ -10,6 +10,9 @@ export default function Header() {
   const router = useRouter();
   const { requireAuth } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   const navLinks = [
     { href: '/shop-all', label: 'Shop All' },
@@ -24,6 +27,21 @@ export default function Header() {
 
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
+  };
+
+  const toggleSearch = () => {
+    setShowSearch((prev) => !prev);
+    setTimeout(() => {
+      searchInputRef.current?.focus();
+    }, 0);
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const term = searchQuery.trim();
+    if (!term) return;
+    router.push(`/shop-all?search=${encodeURIComponent(term)}`);
+    setShowSearch(false);
   };
 
   return (
@@ -51,8 +69,9 @@ export default function Header() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 relative">
           <button
+            onClick={toggleSearch}
             className="text-gray-700 hover:text-pink-500"
             aria-label="Search"
           >
@@ -70,6 +89,26 @@ export default function Header() {
               />
             </svg>
           </button>
+          {showSearch && (
+            <form
+              onSubmit={handleSearchSubmit}
+              className="absolute right-0 top-10 z-20 flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-lg w-64"
+            >
+              <input
+                ref={searchInputRef}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search products..."
+                className="w-full bg-transparent text-sm text-gray-900 outline-none"
+              />
+              <button
+                type="submit"
+                className="text-sm font-semibold text-pink-500 hover:text-pink-600"
+              >
+                Go
+              </button>
+            </form>
+          )}
           <button
             onClick={() => requireAuth(() => router.push('/account'))}
             className={`text-gray-700 transition-colors hover:text-pink-500 ${

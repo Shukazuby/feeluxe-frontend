@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import ProductCard from '../components/ProductCard';
@@ -9,20 +10,23 @@ import { Product, getProductId, getProductPrice } from '../types';
 
 export default function ShopAllPage() {
   const api = useApi();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [sortBy, setSortBy] = useState('newest');
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const searchTerm = searchParams?.get('search') || '';
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [searchTerm]);
 
   const fetchProducts = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await api.products.getAll();
+      const response = await api.products.search({ search: searchTerm });
       if (response.success && response.data) {
         setProducts(response.data.data || []);
       } else {

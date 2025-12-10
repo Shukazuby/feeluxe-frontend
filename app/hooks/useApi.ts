@@ -24,6 +24,7 @@ export function useApi() {
       getFeatured: productsApi.getFeatured,
       getNewArrivals: productsApi.getNewArrivals,
       getAll: productsApi.getAll,
+      search: productsApi.search,
       getById: productsApi.getById,
     },
 

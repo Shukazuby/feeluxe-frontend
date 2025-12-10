@@ -28,6 +28,17 @@ export const productsApi = {
     return apiRequest(url);
   },
 
+  search: async (filters?: ProductFilters): Promise<ApiResponse<{ totalCount: number; data: Product[] }>> => {
+    const params = new URLSearchParams();
+    if (filters?.limit) params.append('limit', filters.limit.toString());
+    if (filters?.page) params.append('page', filters.page.toString());
+    if (filters?.search) params.append('search', filters.search);
+    if (filters?.category) params.append('category', filters.category);
+
+    const url = `${API_ENDPOINTS.PRODUCTS.SEARCH}${params.toString() ? `?${params.toString()}` : ''}`;
+    return apiRequest(url);
+  },
+
   getById: async (id: string): Promise<ApiResponse<Product>> => {
     return apiRequest(API_ENDPOINTS.PRODUCTS.BY_ID(id));
   },
