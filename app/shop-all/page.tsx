@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { Suspense, useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -9,6 +9,14 @@ import { useApi } from '../hooks/useApi';
 import { Product, getProductId, getProductPrice } from '../types';
 
 export default function ShopAllPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center">Loading...</div>}>
+      <ShopAllContent />
+    </Suspense>
+  );
+}
+
+function ShopAllContent() {
   const api = useApi();
   const searchParams = useSearchParams();
   const router = useRouter();
