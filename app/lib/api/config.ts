@@ -1,6 +1,6 @@
 // API Configuration
-// You can override this by setting NEXT_PUBLIC_API_URL in your .env.local file
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+// You can override this by setting NEXT_PUBLIC_API in your .env.local file
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API;
 
 export const API_ENDPOINTS = {
   // Auth
@@ -41,6 +41,7 @@ export const API_ENDPOINTS = {
     UPDATE: (id: string) => `${API_BASE_URL}/orders/${id}`,
     DELETE: (id: string) => `${API_BASE_URL}/orders/${id}`,
     INITIALIZE_PAYMENT: (id: string) => `${API_BASE_URL}/orders/${id}/paystack/initialize`,
+    SHIPPING_ESTIMATE: `${API_BASE_URL}/orders/shipping/estimate`,
   },
   // Contact
   CONTACT: {

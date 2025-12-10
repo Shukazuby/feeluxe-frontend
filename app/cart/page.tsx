@@ -22,6 +22,8 @@ export default function CartPage() {
   const [updating, setUpdating] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [processingCheckout, setProcessingCheckout] = useState(false);
+  const [shippingCost, setShippingCost] = useState<number>(0);
+  const [loadingShipping, setLoadingShipping] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -55,12 +57,40 @@ export default function CartPage() {
         // Backend returns 'cart' but frontend expects 'items'
         const items = response.data.items || response.data.cart || [];
         setCartItems(items);
+        
+        // Fetch shipping estimate when cart items are loaded
+        if (items.length > 0) {
+          fetchShippingEstimate(items.map(item => item.id).filter(Boolean));
+        } else {
+          setShippingCost(0);
+        }
       }
     } catch (err: any) {
       console.error('Error fetching cart:', err);
       setError('Failed to load cart. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchShippingEstimate = async (cartItemIds: string[]) => {
+    if (cartItemIds.length === 0) {
+      setShippingCost(0);
+      return;
+    }
+
+    try {
+      setLoadingShipping(true);
+      const response = await api.orders.getShippingEstimate({ cartItemIds });
+      if (response.success && response.data) {
+        setShippingCost(response.data.shippingCost || 0);
+      }
+    } catch (err: any) {
+      console.error('Error fetching shipping estimate:', err);
+      // Fallback to default shipping cost
+      setShippingCost(2500);
+    } finally {
+      setLoadingShipping(false);
     }
   };
 
@@ -92,7 +122,7 @@ export default function CartPage() {
         quantity: newQuantity,
       });
       
-      // Refresh cart
+      // Refresh cart (which will also refresh shipping estimate)
       await fetchCart();
     } catch (err: any) {
       console.error('Error updating quantity:', err);
@@ -137,9 +167,13 @@ export default function CartPage() {
           return;
         }
 
-        // Create order from cart items
+        // Get current shipping cost (use state value or fetch if needed)
+        const currentShippingCost = shippingCost || 0;
+
+        // Create order from cart items with shipping cost
         const orderResponse = await api.orders.create({
           cartItemIds,
+          shippingCost: currentShippingCost,
         });
 
         if (!orderResponse.success || !orderResponse.data) {
@@ -177,9 +211,8 @@ export default function CartPage() {
     (sum, item) => sum + getProductPrice(item.product) * item.quantity,
     0
   );
-  const shipping = 2500;
   const tax = 0;
-  const total = subtotal + shipping + tax;
+  const total = subtotal + shippingCost + tax;
 
   if (loading) {
     return (
@@ -358,7 +391,13 @@ export default function CartPage() {
                     </div>
                     <div className="flex justify-between text-gray-700">
                       <span>Shipping Estimate</span>
-                      <span>{formatPrice(shipping)}</span>
+                      <span>
+                        {loadingShipping ? (
+                          <span className="text-sm text-gray-500">Calculating...</span>
+                        ) : (
+                          formatPrice(shippingCost)
+                        )}
+                      </span>
                     </div>
                     <div className="flex justify-between text-gray-700">
                       <span>Tax Estimate</span>

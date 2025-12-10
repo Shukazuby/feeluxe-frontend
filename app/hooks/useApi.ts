@@ -63,6 +63,8 @@ export function useApi() {
       delete: (id: string) => ordersApi.delete(ensureAuth(), id),
       initializePayment: (orderId: string) =>
         ordersApi.initializePayment(ensureAuth(), orderId),
+      getShippingEstimate: (payload: Parameters<typeof ordersApi.getShippingEstimate>[1]) =>
+        ordersApi.getShippingEstimate(ensureAuth(), payload),
     },
 
     // Contact (public)

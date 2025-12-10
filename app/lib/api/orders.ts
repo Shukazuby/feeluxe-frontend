@@ -23,7 +23,7 @@ export interface Order {
   contactName?: string;
   notes?: string;
   placedAt: Date;
-  paymentStatus?: 'pending' | 'paid' | 'failed';
+  paymentStatus?: 'pending' | 'paid' | 'failed' | 'initiated';
   paymentReference?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -37,6 +37,15 @@ export const getOrderId = (order: Order): string => {
 export interface CreateOrderDto {
   cartItemIds: string[];
   notes?: string;
+  shippingCost?: number;
+}
+
+export interface ShippingEstimateDto {
+  cartItemIds: string[];
+}
+
+export interface ShippingEstimateResponse {
+  shippingCost: number;
 }
 
 export interface UpdateOrderDto {
@@ -124,6 +133,17 @@ export const ordersApi = {
     return apiRequest(API_ENDPOINTS.ORDERS.INITIALIZE_PAYMENT(orderId), {
       method: 'POST',
       headers: getAuthHeaders(token),
+    });
+  },
+
+  getShippingEstimate: async (
+    token: string,
+    payload: ShippingEstimateDto
+  ): Promise<ApiResponse<ShippingEstimateResponse>> => {
+    return apiRequest(API_ENDPOINTS.ORDERS.SHIPPING_ESTIMATE, {
+      method: 'POST',
+      headers: getAuthHeaders(token),
+      body: JSON.stringify(payload),
     });
   },
 };

@@ -6,7 +6,7 @@ This directory contains all API integration utilities for the Feeluxe frontend.
 
 1. Create a `.env.local` file in the root of the frontend project:
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:3001
+NEXT_PUBLIC_API=http://localhost:3001
 ```
 
 2. Update the URL to match your backend server address.

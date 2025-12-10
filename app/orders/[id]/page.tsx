@@ -308,9 +308,21 @@ export default function OrderDetailPage() {
                     {/* Payment Status */}
                     <div>
                       <p className="mb-2 text-sm font-semibold text-gray-700">Payment Status</p>
-                      <span className={`inline-block rounded-full px-3 py-1 text-sm font-medium ${getPaymentStatusColor(order.paymentStatus)}`}>
-                        {order.paymentStatus ? order.paymentStatus.charAt(0).toUpperCase() + order.paymentStatus.slice(1) : 'Pending'}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`inline-block rounded-full px-3 py-1 text-sm font-medium ${getPaymentStatusColor(order.paymentStatus)}`}>
+                          {order.paymentStatus ? order.paymentStatus.charAt(0).toUpperCase() + order.paymentStatus.slice(1) : 'Pending'}
+                        </span>
+                        {(order.paymentStatus === 'initiated' || order.paymentStatus === 'failed') && (
+                          <span className="text-xs text-red-600 font-medium">
+                            Payment not successful
+                          </span>
+                        )}
+                      </div>
+                      {(order.paymentStatus === 'initiated' || order.paymentStatus === 'failed') && (
+                        <p className="mt-2 text-xs text-gray-600">
+                          Your payment was not completed. Please try again to complete your order.
+                        </p>
+                      )}
                     </div>
 
                     {/* Order Status Timeline */}
@@ -318,14 +330,45 @@ export default function OrderDetailPage() {
                       <p className="mb-3 text-sm font-semibold text-gray-700">Order Progress</p>
                       <div className="space-y-3">
                         <div className="flex items-center gap-3">
-                          <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${order.status !== 'cancelled' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
-                            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
+                          <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                            (order.paymentStatus === 'initiated' || order.paymentStatus === 'failed')
+                              ? 'bg-yellow-100 text-yellow-600' 
+                              : order.status !== 'cancelled' && order.paymentStatus === 'paid'
+                              ? 'bg-green-100 text-green-600'
+                              : 'bg-gray-100 text-gray-400'
+                          }`}>
+                            {(order.paymentStatus === 'initiated' || order.paymentStatus === 'failed') ? (
+                              <div className="h-2 w-2 rounded-full bg-current" />
+                            ) : order.status !== 'cancelled' && order.paymentStatus === 'paid' ? (
+                              <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            ) : (
+                              <div className="h-2 w-2 rounded-full bg-current" />
+                            )}
                           </div>
-                          <div>
+                          <div className="flex-1">
                             <p className="text-sm font-medium text-gray-900">Order Placed</p>
                             <p className="text-xs text-gray-500">{formatDate(order.placedAt)}</p>
+                            {(order.paymentStatus === 'initiated' || order.paymentStatus === 'failed') && (
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    const orderIdValue = getOrderId(order);
+                                    if (!orderIdValue) return;
+                                    const response = await api.orders.initializePayment(orderIdValue);
+                                    if (response.success && response.data?.authorizationUrl) {
+                                      window.location.href = response.data.authorizationUrl;
+                                    }
+                                  } catch (err) {
+                                    console.error('Error initializing payment:', err);
+                                  }
+                                }}
+                                className="mt-2 rounded-lg bg-pink-500 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-pink-600"
+                              >
+                                Try Again
+                              </button>
+                            )}
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
@@ -417,8 +460,8 @@ export default function OrderDetailPage() {
               </div>
             </div>
 
-            {/* Payment Button for Pending Orders */}
-            {order.status === 'pending' && order.paymentStatus !== 'paid' && (
+            {/* Payment Button for Pending Orders (only show if payment status is not initiated or failed) */}
+            {order.status === 'pending' && order.paymentStatus !== 'paid' && order.paymentStatus !== 'initiated' && order.paymentStatus !== 'failed' && (
               <div className="flex justify-center">
                 <button
                   onClick={async () => {
