@@ -44,6 +44,13 @@ export default function CartPage() {
     };
   }, [isAuthenticated]);
 
+  // Clear auth-related error once authenticated
+  useEffect(() => {
+    if (isAuthenticated && error === 'Authentication required') {
+      setError(null);
+    }
+  }, [isAuthenticated, error]);
+
   const fetchCart = async () => {
     try {
       setLoading(true);
@@ -171,24 +178,6 @@ export default function CartPage() {
       if (cartItems.length === 0) {
         setError('Your cart is empty. Please add items to cart first.');
         return;
-      }
-
-      // If guest, sync guest cart to backend first
-      if (!isAuthenticated) {
-        try {
-          const guestItems = guestCart.get();
-          for (const item of guestItems) {
-            await api.cart.addToCart({
-              productId: item.product.id || (item.product as any)?._id,
-              quantity: item.quantity,
-            });
-          }
-          guestCart.clear();
-          await fetchCart();
-        } catch (err) {
-          setError('Failed to sync cart. Please try again.');
-          return;
-        }
       }
 
       try {

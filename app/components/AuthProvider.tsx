@@ -6,7 +6,9 @@ import { useRouter } from 'next/navigation';
 import { authApi } from '../lib/api/auth';
 import { ApiError } from '../lib/api/config';
 import { cartApi } from '../lib/api/cart';
-import { guestCart } from '../lib/guestStorage';
+import { customersApi } from '../lib/api/customers';
+import { guestCart, guestWishlist } from '../lib/guestStorage';
+import { getProductId } from '../types';
 
 type AuthMode = 'login' | 'signup' | 'forgot';
 
@@ -98,6 +100,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               guestCart.clear();
             }
 
+            // Sync guest wishlist to backend
+            const guestW = guestWishlist.get();
+            if (guestW.length) {
+              for (const item of guestW) {
+                const pid = getProductId(item);
+                if (!pid) continue;
+                try {
+                  await customersApi.addToWishlist(response.data.token, { productId: pid });
+                } catch (syncErr) {
+                  console.error('Guest wishlist sync failed', syncErr);
+                }
+              }
+              guestWishlist.clear();
+            }
+
             localStorage.setItem('feeluxe-token', response.data.token);
             setToken(response.data.token);
             setIsAuthenticated(true);
@@ -111,11 +128,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const address = form.get('address')?.toString() || '';
           
           const response = await authApi.signup({ name, email, password, phone, address });
+          const guestItems = guestCart.get();
+          const guestW = guestWishlist.get();
+          const hadGuestItems = guestItems.length > 0;
           
           // Some signup responses may not include a token; fall back to logging in immediately.
           if (response.success && response.data?.token) {
             // Sync guest cart to backend before setting auth state
-            const guestItems = guestCart.get();
             if (guestItems.length) {
               for (const item of guestItems) {
                 const pid = (item.product as any)?.id || (item.product as any)?._id || item.product.id || (item.product as any)?._id;
@@ -132,17 +151,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               guestCart.clear();
             }
 
+            // Sync guest wishlist to backend
+            if (guestW.length) {
+              for (const item of guestW) {
+                const pid = getProductId(item);
+                if (!pid) continue;
+                try {
+                  await customersApi.addToWishlist(response.data.token, { productId: pid });
+                } catch (syncErr) {
+                  console.error('Guest wishlist sync failed', syncErr);
+                }
+              }
+              guestWishlist.clear();
+            }
+
             localStorage.setItem('feeluxe-token', response.data.token);
             setToken(response.data.token);
             setIsAuthenticated(true);
             setShowModal(false);
-            // Navigate to account page after successful signup
-            router.push('/account');
+              // Navigate to cart if there were guest items; otherwise to account
+              router.push(hadGuestItems ? '/cart' : '/account');
           } else if (response.success) {
             // Attempt a login using the same credentials to fetch a token and proceed.
             const loginResp = await authApi.login({ email, password });
             if (loginResp.success && loginResp.data?.token) {
-              const guestItems = guestCart.get();
               if (guestItems.length) {
                 for (const item of guestItems) {
                   const pid = (item.product as any)?.id || (item.product as any)?._id || item.product.id || (item.product as any)?._id;
@@ -159,11 +191,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 guestCart.clear();
               }
 
+              if (guestW.length) {
+                for (const item of guestW) {
+                  const pid = getProductId(item);
+                  if (!pid) continue;
+                  try {
+                    await customersApi.addToWishlist(loginResp.data.token, { productId: pid });
+                  } catch (syncErr) {
+                    console.error('Guest wishlist sync failed', syncErr);
+                  }
+                }
+                guestWishlist.clear();
+              }
+
               localStorage.setItem('feeluxe-token', loginResp.data.token);
               setToken(loginResp.data.token);
               setIsAuthenticated(true);
               setShowModal(false);
-              router.push('/account');
+                router.push(hadGuestItems ? '/cart' : '/account');
             } else {
               setError('Signup succeeded but login failed. Please try signing in.');
             }
