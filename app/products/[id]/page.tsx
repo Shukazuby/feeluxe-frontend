@@ -10,6 +10,7 @@ import ProductCard from '../../components/ProductCard';
 import { useAuth } from '../../components/AuthProvider';
 import { useApi } from '../../hooks/useApi';
 import { Product, getProductId, getProductPrice, getProductImage } from '../../types';
+import { guestCart, guestWishlist } from '../../lib/guestStorage';
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -113,6 +114,20 @@ export default function ProductDetailPage() {
   }, [isAuthenticated, productId]);
 
   const handleWishlist = async () => {
+    if (!productId || !product) return;
+    if (!isAuthenticated) {
+      setWishlistLoading(true);
+      if (wishlisted) {
+        guestWishlist.remove(productId);
+        setWishlisted(false);
+      } else {
+        guestWishlist.add(product);
+        setWishlisted(true);
+      }
+      setWishlistLoading(false);
+      return;
+    }
+
     requireAuth(async () => {
       if (!productId) return;
       setWishlistLoading(true);
@@ -145,14 +160,19 @@ export default function ProductDetailPage() {
   };
 
   const handleAddToCart = async () => {
+    if (!productId || !product) return;
+    if (!isAuthenticated) {
+      guestCart.add(product, 1);
+      router.push('/cart');
+      return;
+    }
+
     requireAuth(async () => {
-      if (!productId || !product) return;
       try {
         await api.cart.addToCart({
           productId,
           quantity: 1,
         });
-        // Small delay to ensure backend has processed the request
         setTimeout(() => {
           router.push('/cart');
         }, 100);

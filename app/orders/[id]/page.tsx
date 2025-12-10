@@ -165,7 +165,7 @@ export default function OrderDetailPage() {
   }
 
   const subtotal = order.items?.reduce((sum, item) => sum + item.price * item.quantity, 0) || 0;
-  const shipping = 2500; // Fixed shipping cost
+  const shipping = 0; // Fixed shipping cost
   const tax = 0;
   const total = order.totalAmount || (subtotal + shipping + tax);
 

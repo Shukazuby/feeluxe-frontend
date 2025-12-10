@@ -11,6 +11,7 @@ import Footer from '../components/Footer';
 import { CartItem } from '../lib/api/cart';
 import { getProductPrice, getProductImage } from '../types';
 import { getOrderId } from '../lib/api/orders';
+import { guestCart } from '../lib/guestStorage';
 
 export default function CartPage() {
   const router = useRouter();
@@ -26,11 +27,6 @@ export default function CartPage() {
   const [loadingShipping, setLoadingShipping] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      requireAuth(() => {});
-      return;
-    }
-
     fetchCart();
   }, [isAuthenticated]);
 
@@ -52,18 +48,23 @@ export default function CartPage() {
     try {
       setLoading(true);
       setError(null);
+      if (!isAuthenticated) {
+        const guestItems = guestCart.get().map((item) => ({
+          id: item.product.id || (item.product as any)?._id || '',
+          productId: item.product.id || (item.product as any)?._id || '',
+          product: item.product,
+          quantity: item.quantity,
+        }));
+        setCartItems(guestItems);
+        setShippingCost(0);
+        return;
+      }
+
       const response = await api.cart.getCart();
       if (response.success && response.data) {
-        // Backend returns 'cart' but frontend expects 'items'
         const items = response.data.items || response.data.cart || [];
         setCartItems(items);
-        
-        // Fetch shipping estimate when cart items are loaded
-        if (items.length > 0) {
-          fetchShippingEstimate(items.map(item => item.id).filter(Boolean));
-        } else {
-          setShippingCost(0);
-        }
+        await fetchShippingCost();
       }
     } catch (err: any) {
       console.error('Error fetching cart:', err);
@@ -73,22 +74,16 @@ export default function CartPage() {
     }
   };
 
-  const fetchShippingEstimate = async (cartItemIds: string[]) => {
-    if (cartItemIds.length === 0) {
-      setShippingCost(0);
-      return;
-    }
-
+  const fetchShippingCost = async () => {
     try {
       setLoadingShipping(true);
-      const response = await api.orders.getShippingEstimate({ cartItemIds });
+      const response = await api.shipping.getCurrent();
       if (response.success && response.data) {
-        setShippingCost(response.data.shippingCost || 0);
+        setShippingCost(response.data.cost || 0);
       }
     } catch (err: any) {
-      console.error('Error fetching shipping estimate:', err);
-      // Fallback to default shipping cost
-      setShippingCost(2500);
+      console.error('Error fetching shipping cost:', err);
+      setShippingCost(0);
     } finally {
       setLoadingShipping(false);
     }
@@ -111,23 +106,33 @@ export default function CartPage() {
     const cartItem = cartItems.find(item => item.id === cartItemId);
     if (!cartItem) return;
 
+    if (!isAuthenticated) {
+      setUpdating(cartItemId);
+      guestCart.update(cartItem.productId, newQuantity);
+      setCartItems(guestCart.get().map((item) => ({
+        id: item.product.id || (item.product as any)?._id || '',
+        productId: item.product.id || (item.product as any)?._id || '',
+        product: item.product,
+        quantity: item.quantity,
+      })));
+      setUpdating(null);
+      return;
+    }
+
     try {
       setUpdating(cartItemId);
       setError(null);
       
-      // Remove the item and add it back with new quantity
       await api.cart.removeFromCart(cartItemId);
       await api.cart.addToCart({
         productId: cartItem.productId,
         quantity: newQuantity,
       });
       
-      // Refresh cart (which will also refresh shipping estimate)
       await fetchCart();
     } catch (err: any) {
       console.error('Error updating quantity:', err);
       setError('Failed to update quantity. Please try again.');
-      // Refresh cart to restore previous state
       await fetchCart();
     } finally {
       setUpdating(null);
@@ -135,6 +140,19 @@ export default function CartPage() {
   };
 
   const removeItem = async (cartItemId: string) => {
+    if (!isAuthenticated) {
+      setUpdating(cartItemId);
+      guestCart.remove(cartItemId);
+      setCartItems(guestCart.get().map((item) => ({
+        id: item.product.id || (item.product as any)?._id || '',
+        productId: item.product.id || (item.product as any)?._id || '',
+        product: item.product,
+        quantity: item.quantity,
+      })));
+      setUpdating(null);
+      return;
+    }
+
     try {
       setUpdating(cartItemId);
       setError(null);
@@ -149,28 +167,42 @@ export default function CartPage() {
   };
 
   const handleProceedToCheckout = async () => {
-    requireAuth(async () => {
+    const proceed = async () => {
       if (cartItems.length === 0) {
         setError('Your cart is empty. Please add items to cart first.');
         return;
+      }
+
+      // If guest, sync guest cart to backend first
+      if (!isAuthenticated) {
+        try {
+          const guestItems = guestCart.get();
+          for (const item of guestItems) {
+            await api.cart.addToCart({
+              productId: item.product.id || (item.product as any)?._id,
+              quantity: item.quantity,
+            });
+          }
+          guestCart.clear();
+          await fetchCart();
+        } catch (err) {
+          setError('Failed to sync cart. Please try again.');
+          return;
+        }
       }
 
       try {
         setProcessingCheckout(true);
         setError(null);
 
-        // Get all cart item IDs
         const cartItemIds = cartItems.map(item => item.id).filter(Boolean);
-        
         if (cartItemIds.length === 0) {
           setError('No valid cart items found. Please refresh your cart.');
           return;
         }
 
-        // Get current shipping cost (use state value or fetch if needed)
         const currentShippingCost = shippingCost || 0;
 
-        // Create order from cart items with shipping cost
         const orderResponse = await api.orders.create({
           cartItemIds,
           shippingCost: currentShippingCost,
@@ -189,11 +221,9 @@ export default function CartPage() {
           return;
         }
 
-        // Initialize payment for the order
         const paymentResponse = await api.orders.initializePayment(orderId);
 
         if (paymentResponse.success && paymentResponse.data?.authorizationUrl) {
-          // Redirect to Paystack payment page
           window.location.href = paymentResponse.data.authorizationUrl;
         } else {
           setError('Failed to initialize payment. Please try again.');
@@ -204,7 +234,13 @@ export default function CartPage() {
       } finally {
         setProcessingCheckout(false);
       }
-    });
+    };
+
+    if (!isAuthenticated) {
+      requireAuth(proceed);
+    } else {
+      proceed();
+    }
   };
 
   const subtotal = cartItems.reduce(

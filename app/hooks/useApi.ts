@@ -4,6 +4,7 @@ import { customersApi } from '@/app/lib/api/customers';
 import { cartApi } from '@/app/lib/api/cart';
 import { ordersApi } from '@/app/lib/api/orders';
 import { contactApi } from '@/app/lib/api/contact';
+import { shippingApi } from '@/app/lib/api/shipping';
 
 /**
  * Custom hook that provides API access with automatic token injection
@@ -73,6 +74,11 @@ export function useApi() {
     contact: {
       create: contactApi.create,
       getAll: contactApi.getAll,
+    },
+
+    // Shipping (public)
+    shipping: {
+      getCurrent: shippingApi.getCurrent,
     },
 
     // Auth helpers

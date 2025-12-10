@@ -57,6 +57,10 @@ export const API_ENDPOINTS = {
   NEWSLETTER: {
     SUBSCRIBE: `${API_BASE_URL}/newsletter/subscribe`,
   },
+  // Shipping
+  SHIPPING: {
+    CURRENT: `${API_BASE_URL}/shipping`,
+  },
 };
 
 // Helper function to get auth headers

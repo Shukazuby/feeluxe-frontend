@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { Product, getProductId, getProductPrice, getProductImage } from '../types';
 import { useAuth } from './AuthProvider';
 import { useApi } from '../hooks/useApi';
+import { guestCart, guestWishlist } from '../lib/guestStorage';
 
 interface ProductCardProps {
   product: Product;
@@ -65,23 +66,33 @@ export default function ProductCard({ product, onWishlistChange }: ProductCardPr
   };
 
   const handleWishlist = async () => {
+    if (!productId) return;
+
+    // Guest mode: store locally
+    if (!isAuthenticated) {
+      if (wishlisted) {
+        guestWishlist.remove(productId);
+        setWishlisted(false);
+      } else {
+        guestWishlist.add(product);
+        setWishlisted(true);
+      }
+      onWishlistChange?.();
+      return;
+    }
+
+    // Authenticated flow
     requireAuth(async () => {
-      if (!productId) return;
       setLoading(true);
       try {
         if (wishlisted) {
-          // Remove from wishlist
           await api.customers.removeFromWishlist(productId);
           setWishlisted(false);
         } else {
-          // Add to wishlist
           await api.customers.addToWishlist({ productId });
           setWishlisted(true);
         }
-        // Notify parent component if callback provided
-        if (onWishlistChange) {
-          onWishlistChange();
-        }
+        onWishlistChange?.();
       } catch (error) {
         console.error('Error updating wishlist:', error);
       } finally {
@@ -91,15 +102,24 @@ export default function ProductCard({ product, onWishlistChange }: ProductCardPr
   };
 
   const handleAddToCart = async () => {
+    if (!productId) return;
+
+    // Guest mode: store locally
+    if (!isAuthenticated) {
+      setAddingToCart(true);
+      guestCart.add(product, 1);
+      setAddingToCart(false);
+      return;
+    }
+
+    // Authenticated flow
     requireAuth(async () => {
-      if (!productId) return;
       setAddingToCart(true);
       try {
         await api.cart.addToCart({
           productId,
           quantity: 1,
         });
-        // Show success feedback (you could add a toast notification here)
       } catch (error) {
         console.error('Error adding to cart:', error);
       } finally {

@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { authApi } from '../lib/api/auth';
 import { ApiError } from '../lib/api/config';
+import { cartApi } from '../lib/api/cart';
+import { guestCart } from '../lib/guestStorage';
 
 type AuthMode = 'login' | 'signup' | 'forgot';
 
@@ -78,6 +80,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const response = await authApi.login({ email, password });
           
           if (response.success && response.data?.token) {
+            // Sync guest cart to backend before setting auth state
+            const guestItems = guestCart.get();
+            if (guestItems.length) {
+              for (const item of guestItems) {
+                const pid = (item.product as any)?.id || (item.product as any)?._id || item.product.id || (item.product as any)?._id;
+                if (!pid) continue;
+                try {
+                  await cartApi.addToCart(response.data.token, {
+                    productId: pid,
+                    quantity: item.quantity,
+                  });
+                } catch (syncErr) {
+                  console.error('Guest cart sync failed', syncErr);
+                }
+              }
+              guestCart.clear();
+            }
+
             localStorage.setItem('feeluxe-token', response.data.token);
             setToken(response.data.token);
             setIsAuthenticated(true);
@@ -94,6 +114,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           // Some signup responses may not include a token; fall back to logging in immediately.
           if (response.success && response.data?.token) {
+            // Sync guest cart to backend before setting auth state
+            const guestItems = guestCart.get();
+            if (guestItems.length) {
+              for (const item of guestItems) {
+                const pid = (item.product as any)?.id || (item.product as any)?._id || item.product.id || (item.product as any)?._id;
+                if (!pid) continue;
+                try {
+                  await cartApi.addToCart(response.data.token, {
+                    productId: pid,
+                    quantity: item.quantity,
+                  });
+                } catch (syncErr) {
+                  console.error('Guest cart sync failed', syncErr);
+                }
+              }
+              guestCart.clear();
+            }
+
             localStorage.setItem('feeluxe-token', response.data.token);
             setToken(response.data.token);
             setIsAuthenticated(true);
@@ -104,6 +142,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Attempt a login using the same credentials to fetch a token and proceed.
             const loginResp = await authApi.login({ email, password });
             if (loginResp.success && loginResp.data?.token) {
+              const guestItems = guestCart.get();
+              if (guestItems.length) {
+                for (const item of guestItems) {
+                  const pid = (item.product as any)?.id || (item.product as any)?._id || item.product.id || (item.product as any)?._id;
+                  if (!pid) continue;
+                  try {
+                    await cartApi.addToCart(loginResp.data.token, {
+                      productId: pid,
+                      quantity: item.quantity,
+                    });
+                  } catch (syncErr) {
+                    console.error('Guest cart sync failed', syncErr);
+                  }
+                }
+                guestCart.clear();
+              }
+
               localStorage.setItem('feeluxe-token', loginResp.data.token);
               setToken(loginResp.data.token);
               setIsAuthenticated(true);
