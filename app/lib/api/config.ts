@@ -1,6 +1,8 @@
 // API Configuration
 // You can override this by setting NEXT_PUBLIC_API in your .env.local file
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API;
+// If it's not set, we fall back to the backend URL from API_SETUP.md
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API || 'https://0ab23c58b474.ngrok-free.app';
 
 export const API_ENDPOINTS = {
   // Auth
@@ -106,10 +108,18 @@ export async function apiRequest<T>(
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
   try {
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    };
+    // Don't set Content-Type for FormData - browser will set it with boundary
+    const isFormData = options.body instanceof FormData;
+    const headers: HeadersInit = isFormData
+      ? {}
+      : {
+          'Content-Type': 'application/json',
+        };
+    
+    // Merge with provided headers
+    if (options.headers) {
+      Object.assign(headers, options.headers);
+    }
 
     // Add ngrok-skip-browser-warning header if using ngrok
     if (url.includes('ngrok')) {

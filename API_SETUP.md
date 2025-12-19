@@ -2,7 +2,7 @@
 
 ## Base URL Configuration
 
-The API base URL is now set to: **https://feeluxe-backend.onrender.com**
+The API base URL is now set to: **https://0ab23c58b474.ngrok-free.app**
 
 ### To Change the Base URL Anytime:
 
