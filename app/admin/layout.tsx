@@ -60,8 +60,45 @@ export default function AdminLayout({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Sidebar */}
-      <aside className="fixed left-0 top-0 h-full w-64 bg-slate-900 text-white shadow-lg">
+      {/* Mobile Top Bar */}
+      <header className="md:hidden sticky top-0 z-20 bg-slate-900 text-white shadow">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
+          <div>
+            <h1 className="text-lg font-bold">Admin Dashboard</h1>
+            {admin && (
+              <p className="text-xs text-slate-300">{admin.email}</p>
+            )}
+          </div>
+          <button
+            onClick={handleLogout}
+            className="px-3 py-1 rounded-md bg-red-600 text-xs font-semibold hover:bg-red-700"
+          >
+            Logout
+          </button>
+        </div>
+        <nav className="px-2 py-2 overflow-x-auto">
+          <ul className="flex gap-2">
+            {navItems.map((item) => (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap ${
+                    pathname === item.href
+                      ? 'bg-purple-600 text-white'
+                      : 'text-slate-200 hover:bg-slate-800'
+                  }`}
+                >
+                  <span>{item.icon}</span>
+                  <span>{item.label}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </header>
+
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:flex fixed left-0 top-0 h-full w-64 flex-col bg-slate-900 text-white shadow-lg">
         <div className="p-6 border-b border-slate-700">
           <h1 className="text-2xl font-bold">Admin Dashboard</h1>
           {admin && (
@@ -69,7 +106,7 @@ export default function AdminLayout({
           )}
         </div>
 
-        <nav className="p-4">
+        <nav className="p-4 flex-1 overflow-y-auto">
           <ul className="space-y-2">
             {navItems.map((item) => (
               <li key={item.href}>
@@ -89,7 +126,7 @@ export default function AdminLayout({
           </ul>
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-700">
+        <div className="p-4 border-t border-slate-700">
           <button
             onClick={handleLogout}
             className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
@@ -100,7 +137,7 @@ export default function AdminLayout({
       </aside>
 
       {/* Main Content */}
-      <main className="ml-64 p-8">
+      <main className="p-4 md:p-8 md:ml-64">
         {children}
       </main>
     </div>
