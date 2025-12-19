@@ -197,7 +197,19 @@ export const adminApi = {
     if (!response.ok) {
       throw new Error(data.message || 'Failed to create product');
     }
-    return data;
+    
+    // Backend returns Product directly, not wrapped in ApiResponse
+    // Normalize it to match ApiResponse format
+    if (data.success !== undefined) {
+      return data;
+    } else {
+      return {
+        success: true,
+        code: response.status,
+        message: 'Product created successfully',
+        data: data,
+      };
+    }
   },
 
   updateProduct: async (id: string, payload: Partial<Product>): Promise<ApiResponse<Product>> => {
@@ -226,7 +238,18 @@ export const adminApi = {
     if (!response.ok) {
       throw new Error(data.message || 'Failed to update product image');
     }
-    return data;
+    
+    // Backend may return Product directly, normalize it to match ApiResponse format
+    if (data.success !== undefined) {
+      return data;
+    } else {
+      return {
+        success: true,
+        code: response.status,
+        message: 'Product image updated successfully',
+        data: data,
+      };
+    }
   },
 
   deleteProduct: async (id: string): Promise<ApiResponse> => {

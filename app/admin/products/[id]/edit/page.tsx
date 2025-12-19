@@ -170,7 +170,7 @@ export default function AdminEditProductPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm font-semibold placeholder:font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm font-bold text-gray-900 placeholder:font-bold placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
               />
             </div>
 
@@ -185,7 +185,7 @@ export default function AdminEditProductPage() {
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm font-semibold placeholder:font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm font-bold text-gray-900 placeholder:font-bold placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
               />
             </div>
           </div>
@@ -199,7 +199,7 @@ export default function AdminEditProductPage() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm font-semibold placeholder:font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm font-bold text-gray-900 placeholder:font-bold placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
             />
           </div>
 
@@ -213,7 +213,7 @@ export default function AdminEditProductPage() {
                 type="text"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm font-semibold placeholder:font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm font-bold text-gray-900 placeholder:font-bold placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
               />
             </div>
 

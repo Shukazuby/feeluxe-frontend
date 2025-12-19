@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { adminApi } from '@/app/lib/api/admin';
 
@@ -10,6 +10,18 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('admin_token');
+      const adminData = localStorage.getItem('admin');
+      
+      if (token && adminData) {
+        router.push('/admin/dashboard');
+      }
+    }
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
