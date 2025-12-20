@@ -31,6 +31,7 @@ export interface AuthResponse {
     email: string;
     phone?: string;
     address?: string;
+    lastLogin?: string | Date;
   };
 }
 

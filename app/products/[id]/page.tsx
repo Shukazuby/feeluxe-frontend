@@ -18,7 +18,6 @@ export default function ProductDetailPage() {
   const { requireAuth, isAuthenticated } = useAuth();
   const api = useApi();
   
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [expandedSection, setExpandedSection] = useState<string | null>(
     'description'
   );
@@ -247,31 +246,16 @@ export default function ProductDetailPage() {
                     priority
                   />
                 </div>
-                {relatedProducts.length > 0 && (
-                  <div className="mt-4 flex gap-4">
-                    {relatedProducts.map((p, index) => {
-                      const relatedImage = getProductImage(p);
-                      return (
-                        <button
-                          key={getProductId(p)}
-                          onClick={() => setSelectedImageIndex(index)}
-                          className={`relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border-2 ${
-                            selectedImageIndex === index
-                              ? 'border-pink-500'
-                              : 'border-gray-200'
-                          }`}
-                        >
-                          <Image
-                            src={relatedImage}
-                            alt={p.name}
-                            fill
-                            className="object-cover"
-                          />
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
+                
+                {/* Product Description */}
+                <div className="mt-6">
+                  <h2 className="mb-3 text-lg font-bold text-gray-900">
+                    Product Description
+                  </h2>
+                  <p className="text-gray-700">
+                    {product.description || `Drape yourself in the vibrant elegance of ${product.name}. This exquisite vintage piece features a captivating blend of rich colors and intricate patterns that speak to a timeless Nigerian aesthetic. Perfect for adding a touch of sophisticated charm to any outfit, whether casually draped or elegantly tied.`}
+                  </p>
+                </div>
               </div>
 
               {/* Right Column - Product Details */}
@@ -313,40 +297,6 @@ export default function ProductDetailPage() {
                       />
                     </svg>
                   </button>
-                </div>
-
-                {/* Product Description */}
-                <div className="mb-4">
-                  <button
-                    onClick={() => toggleSection('description')}
-                    className="flex w-full items-center justify-between border-b border-gray-200 pb-3 text-left"
-                  >
-                    <h2 className="text-lg font-bold text-gray-900">
-                      Product Description
-                    </h2>
-                    <svg
-                      className={`h-5 w-5 text-gray-600 transition-transform ${
-                        expandedSection === 'description'
-                          ? 'rotate-180'
-                          : ''
-                      }`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
-                  </button>
-                  {expandedSection === 'description' && (
-                    <p className="mt-4 text-gray-700">
-                      {product.description || `Drape yourself in the vibrant elegance of ${product.name}. This exquisite vintage piece features a captivating blend of rich colors and intricate patterns that speak to a timeless Nigerian aesthetic. Perfect for adding a touch of sophisticated charm to any outfit, whether casually draped or elegantly tied.`}
-                    </p>
-                  )}
                 </div>
 
                 {/* Material Details */}

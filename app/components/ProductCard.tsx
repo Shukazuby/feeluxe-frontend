@@ -8,6 +8,7 @@ import { Product, getProductId, getProductPrice, getProductImage } from '../type
 import { useAuth } from './AuthProvider';
 import { useApi } from '../hooks/useApi';
 import { guestCart, guestWishlist } from '../lib/guestStorage';
+import { logActivity } from '../lib/auditLogger';
 
 interface ProductCardProps {
   product: Product;
@@ -26,6 +27,24 @@ export default function ProductCard({ product, onWishlistChange }: ProductCardPr
   const productId = getProductId(product);
   const productPrice = getProductPrice(product);
   const productImage = getProductImage(product);
+
+  // Get customer info for logging
+  const getCustomerInfo = () => {
+    if (!isAuthenticated || typeof window === 'undefined') return {};
+    try {
+      const customerData = localStorage.getItem('customer');
+      if (customerData) {
+        const customer = JSON.parse(customerData);
+        return {
+          customerId: customer.id || customer._id,
+          email: customer.email,
+        };
+      }
+    } catch (error) {
+      console.error('Error parsing customer data:', error);
+    }
+    return {};
+  };
 
   // Check if product is in wishlist when component mounts and user is authenticated
   useEffect(() => {
@@ -74,9 +93,17 @@ export default function ProductCard({ product, onWishlistChange }: ProductCardPr
       if (wishlisted) {
         guestWishlist.remove(productId);
         setWishlisted(false);
+        logActivity('wishlist_remove', undefined, undefined, { 
+          productId, 
+          productName: product.name 
+        });
       } else {
         guestWishlist.add(product);
         setWishlisted(true);
+        logActivity('wishlist_add', undefined, undefined, { 
+          productId, 
+          productName: product.name 
+        });
       }
       onWishlistChange?.();
       return;
@@ -85,13 +112,22 @@ export default function ProductCard({ product, onWishlistChange }: ProductCardPr
     // Authenticated flow
     requireAuth(async () => {
       setLoading(true);
+      const customerInfo = getCustomerInfo();
       try {
         if (wishlisted) {
           await api.customers.removeFromWishlist(productId);
           setWishlisted(false);
+          logActivity('wishlist_remove', customerInfo.customerId, customerInfo.email, { 
+            productId, 
+            productName: product.name 
+          });
         } else {
           await api.customers.addToWishlist({ productId });
           setWishlisted(true);
+          logActivity('wishlist_add', customerInfo.customerId, customerInfo.email, { 
+            productId, 
+            productName: product.name 
+          });
         }
         onWishlistChange?.();
       } catch (error) {
@@ -110,27 +146,65 @@ export default function ProductCard({ product, onWishlistChange }: ProductCardPr
       setAddingToCart(true);
       guestCart.add(product, 1);
       setCartMessage('Added to cart');
+      logActivity('add_to_cart', undefined, undefined, { 
+        productId, 
+        productName: product.name, 
+        quantity: 1 
+      });
       setTimeout(() => setCartMessage(null), 1200);
       setAddingToCart(false);
       return;
     }
 
-    // Authenticated flow
-    requireAuth(async () => {
+    // Authenticated flow - execute directly if already authenticated
+    if (isAuthenticated) {
       setAddingToCart(true);
+      const customerInfo = getCustomerInfo();
       try {
         await api.cart.addToCart({
           productId,
           quantity: 1,
         });
         setCartMessage('Added to cart');
+        logActivity('add_to_cart', customerInfo.customerId, customerInfo.email, { 
+          productId, 
+          productName: product.name, 
+          quantity: 1 
+        });
         setTimeout(() => setCartMessage(null), 1200);
       } catch (error) {
         console.error('Error adding to cart:', error);
+        setCartMessage('Failed to add to cart');
+        setTimeout(() => setCartMessage(null), 2000);
       } finally {
         setAddingToCart(false);
       }
-    });
+    } else {
+      // Not authenticated, require auth first
+      requireAuth(async () => {
+        setAddingToCart(true);
+        const customerInfo = getCustomerInfo();
+        try {
+          await api.cart.addToCart({
+            productId,
+            quantity: 1,
+          });
+          logActivity('add_to_cart', customerInfo.customerId, customerInfo.email, { 
+            productId, 
+            productName: product.name, 
+            quantity: 1 
+          });
+          setCartMessage('Added to cart');
+          setTimeout(() => setCartMessage(null), 1200);
+        } catch (error) {
+          console.error('Error adding to cart:', error);
+          setCartMessage('Failed to add to cart');
+          setTimeout(() => setCartMessage(null), 2000);
+        } finally {
+          setAddingToCart(false);
+        }
+      });
+    }
   };
 
   return (

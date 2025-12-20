@@ -13,10 +13,16 @@ export function useApi() {
   const { token, requireAuth } = useAuth();
 
   const ensureAuth = () => {
-    if (!token) {
+    // Try to get token from context first, then fallback to localStorage
+    let authToken = token;
+    if (!authToken && typeof window !== 'undefined') {
+      authToken = localStorage.getItem('feeluxe-token');
+    }
+    
+    if (!authToken) {
       throw new Error('Authentication required');
     }
-    return token;
+    return authToken;
   };
 
   return {

@@ -17,7 +17,7 @@ interface AuthContextValue {
   token: string | null;
   openAuthModal: (mode?: AuthMode) => void;
   closeAuthModal: () => void;
-  requireAuth: (action: () => void) => void;
+  requireAuth: (action: () => void, redirectAfterAuth?: string) => void;
   logout: () => void;
 }
 
@@ -34,13 +34,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [success, setSuccess] = useState<string | null>(null);
   const [forgotStep, setForgotStep] = useState<1 | 2>(1);
   const [forgotEmail, setForgotEmail] = useState('');
+  const [pendingRedirect, setPendingRedirect] = useState<string | null>(null);
 
   useEffect(() => {
-    const storedToken = typeof window !== 'undefined' ? localStorage.getItem('feeluxe-token') : null;
-    if (storedToken) {
-      setToken(storedToken);
-      setIsAuthenticated(true);
+    // Check on mount
+    if (typeof window !== 'undefined') {
+      const storedToken = localStorage.getItem('feeluxe-token');
+      if (storedToken) {
+        setToken(storedToken);
+        setIsAuthenticated(true);
+      }
     }
+  }, []);
+  
+  // Sync token from localStorage when it changes (e.g., from other tabs)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'feeluxe-token') {
+        const newToken = e.newValue;
+        if (newToken) {
+          setToken(newToken);
+          setIsAuthenticated(true);
+        } else {
+          setToken(null);
+          setIsAuthenticated(false);
+        }
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const openAuthModal = useCallback((nextMode: AuthMode = 'login') => {
@@ -60,10 +85,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSuccess(null);
     setForgotStep(1);
     setForgotEmail('');
+    setPendingRedirect(null);
   }, []);
 
   const logout = useCallback(() => {
     localStorage.removeItem('feeluxe-token');
+    localStorage.removeItem('customer');
     setToken(null);
     setIsAuthenticated(false);
   }, []);
@@ -116,9 +143,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
 
             localStorage.setItem('feeluxe-token', response.data.token);
+            // Store customer data including lastLogin
+            if (response.data.customer) {
+              localStorage.setItem('customer', JSON.stringify(response.data.customer));
+            }
             setToken(response.data.token);
             setIsAuthenticated(true);
             setShowModal(false);
+            
+            // Redirect if there's a pending redirect
+            if (pendingRedirect) {
+              router.push(pendingRedirect);
+              setPendingRedirect(null);
+            }
           }
         } else if (mode === 'signup') {
           const name = form.get('name')?.toString() || '';
@@ -166,11 +203,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
 
             localStorage.setItem('feeluxe-token', response.data.token);
+            // Store customer data including lastLogin
+            if (response.data.customer) {
+              localStorage.setItem('customer', JSON.stringify(response.data.customer));
+            }
             setToken(response.data.token);
             setIsAuthenticated(true);
             setShowModal(false);
+            
+            // Redirect if there's a pending redirect, otherwise use default logic
+            if (pendingRedirect) {
+              router.push(pendingRedirect);
+              setPendingRedirect(null);
+            } else {
               // Navigate to cart if there were guest items; otherwise to account
               router.push(hadGuestItems ? '/cart' : '/account');
+            }
           } else if (response.success) {
             // Attempt a login using the same credentials to fetch a token and proceed.
             const loginResp = await authApi.login({ email, password });
@@ -205,10 +253,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               }
 
               localStorage.setItem('feeluxe-token', loginResp.data.token);
+              // Store customer data including lastLogin
+              if (loginResp.data.customer) {
+                localStorage.setItem('customer', JSON.stringify(loginResp.data.customer));
+              }
               setToken(loginResp.data.token);
               setIsAuthenticated(true);
               setShowModal(false);
+              
+              // Redirect if there's a pending redirect, otherwise use default logic
+              if (pendingRedirect) {
+                router.push(pendingRedirect);
+                setPendingRedirect(null);
+              } else {
                 router.push(hadGuestItems ? '/cart' : '/account');
+              }
             } else {
               setError('Signup succeeded but login failed. Please try signing in.');
             }
@@ -261,10 +320,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const requireAuth = useCallback(
-    (action: () => void) => {
+    (action: () => void, redirectAfterAuth?: string) => {
       if (isAuthenticated) {
         action();
       } else {
+        // Set pending redirect if provided
+        if (redirectAfterAuth) {
+          setPendingRedirect(redirectAfterAuth);
+        }
         openAuthModal('login');
         const interval = setInterval(() => {
           const token = localStorage.getItem('feeluxe-token');
@@ -272,12 +335,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             clearInterval(interval);
             setIsAuthenticated(true);
             setShowModal(false);
-            action();
+            // If redirect is set, navigate to it instead of executing action
+            if (redirectAfterAuth) {
+              router.push(redirectAfterAuth);
+              setPendingRedirect(null);
+            } else {
+              action();
+            }
           }
         }, 300);
       }
     },
-    [isAuthenticated, openAuthModal],
+    [isAuthenticated, openAuthModal, router],
   );
 
   const value = useMemo(

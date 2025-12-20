@@ -23,7 +23,15 @@ export default function Home() {
           const products = Array.isArray(response.data) 
             ? response.data 
             : response.data.data || [];
-          setFeaturedProducts(products.slice(0, 4)); // Limit to 4 featured products
+          
+          // Sort by createdAt (newest first) to ensure latest products come first
+          const sortedProducts = products.sort((a, b) => {
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return dateB - dateA; // Descending order (newest first)
+          });
+          
+          setFeaturedProducts(sortedProducts.slice(0, 4)); // Limit to 4 featured products
         }
       } catch (error) {
         console.error('Error fetching featured products:', error);

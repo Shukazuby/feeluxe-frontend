@@ -69,13 +69,17 @@ export default function CartPage() {
 
       const response = await api.cart.getCart();
       if (response.success && response.data) {
+        // Backend returns { data: { cart: [...], total: number } }
         const items = response.data.items || response.data.cart || [];
         setCartItems(items);
         await fetchShippingCost();
+      } else {
+        setError(response.message || 'Failed to load cart. Please try again.');
       }
     } catch (err: any) {
       console.error('Error fetching cart:', err);
-      setError('Failed to load cart. Please try again.');
+      const errorMessage = err.message || err.response?.data?.message || 'Failed to load cart. Please try again.';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -226,7 +230,8 @@ export default function CartPage() {
     };
 
     if (!isAuthenticated) {
-      requireAuth(proceed);
+      // Redirect to cart after authentication instead of proceeding with checkout
+      requireAuth(proceed, '/cart');
     } else {
       proceed();
     }

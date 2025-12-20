@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from './AuthProvider';
 
@@ -48,7 +49,14 @@ export default function Header() {
     <header className="w-full bg-white">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-2">
-          <div className="h-6 w-6 rounded bg-pink-500"></div>
+          <Image
+            src="/logo.png"
+            alt="Feeluxe.ng Logo"
+            width={32}
+            height={32}
+            className="h-6 w-6 object-contain"
+            priority
+          />
           <span className="text-xl font-semibold text-black">Feeluxe.ng</span>
         </Link>
 
