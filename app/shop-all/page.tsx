@@ -130,7 +130,7 @@ function ShopAllContent() {
                 <p className="text-gray-500 text-lg">No products found.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid grid-cols-2 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 {sortedProducts.map((product) => (
                   <ProductCard key={getProductId(product)} product={product} />
                 ))}

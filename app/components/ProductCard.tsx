@@ -208,8 +208,8 @@ export default function ProductCard({ product, onWishlistChange }: ProductCardPr
   };
 
   return (
-    <div className="group overflow-hidden rounded-lg bg-white shadow-sm transition hover:shadow-md">
-      <div className="relative aspect-square w-full overflow-hidden bg-gray-100">
+    <div className="group overflow-hidden rounded-lg bg-white shadow-sm transition hover:shadow-md max-w-full">
+      <div className="relative aspect-square w-full max-w-full overflow-hidden bg-gray-100">
         <Link href={`/products/${productId}`}>
           <Image
             src={productImage}
@@ -289,10 +289,10 @@ export default function ProductCard({ product, onWishlistChange }: ProductCardPr
           </svg>
         </button>
       </div>
-      <div className="p-4">
+      <div className="p-3 sm:p-4">
         <Link href={`/products/${productId}`}>
-          <h3 className="text-sm font-medium text-gray-900">{product.name}</h3>
-          <p className="mt-2 text-sm font-semibold text-gray-900">
+          <h3 className="text-xs sm:text-sm font-medium text-gray-900 line-clamp-2">{product.name}</h3>
+          <p className="mt-1 sm:mt-2 text-xs sm:text-sm font-semibold text-gray-900">
             {formatPrice(productPrice)}
           </p>
         </Link>

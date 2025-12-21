@@ -256,7 +256,7 @@ export default function AccountPage() {
                     Wishlist / Saved Items
                   </h2>
                   {wishlistItems.length > 0 ? (
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
                     {wishlistItems.map((product) => (
                         <ProductCard 
                           key={getProductId(product)} 

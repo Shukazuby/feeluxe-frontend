@@ -232,18 +232,19 @@ export default function ProductDetailPage() {
     <div className="flex min-h-screen flex-col bg-white">
       <Header />
       <main className="flex-1">
-        <section className="py-12">
+        <section className="py-6 sm:py-12">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-6 sm:gap-8 lg:grid-cols-2">
               {/* Left Column - Product Images */}
-              <div>
-                <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-gray-100">
+              <div className="px-2 sm:px-0">
+                <div className="relative aspect-square w-full max-w-full overflow-hidden rounded-lg bg-gray-100 mx-auto shadow-md">
                   <Image
                     src={productImage}
                     alt={product.name}
                     fill
                     className="object-cover"
                     priority
+                    sizes="(max-width: 640px) 90vw, (max-width: 1024px) 50vw, 40vw"
                   />
                 </div>
                 
@@ -259,11 +260,11 @@ export default function ProductDetailPage() {
               </div>
 
               {/* Right Column - Product Details */}
-              <div>
-                <h1 className="mb-4 text-4xl font-bold text-gray-900">
+              <div className="px-2 sm:px-0">
+                <h1 className="mb-4 text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">
                   {product.name}
                 </h1>
-                <p className="mb-6 text-3xl font-semibold text-pink-500">
+                <p className="mb-6 text-2xl sm:text-3xl font-semibold text-pink-500">
                   {formatPrice(productPrice)}
                 </p>
                 <div className="mb-8 flex gap-3">
@@ -371,7 +372,7 @@ export default function ProductDetailPage() {
               <h2 className="mb-8 text-center text-4xl font-bold text-gray-900">
                 Customers Also Viewed
               </h2>
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid grid-cols-2 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 {relatedProducts.map((p) => (
                   <ProductCard key={getProductId(p)} product={p} />
                 ))}

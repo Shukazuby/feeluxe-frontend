@@ -24,3 +24,79 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.6s ease-out;
+}
+
+@keyframes hero-zoom-pan {
+  0% {
+    transform: scale(1.1) translateX(0) translateY(0);
+  }
+  25% {
+    transform: scale(1.12) translateX(-1.5%) translateY(-1%);
+  }
+  50% {
+    transform: scale(1.1) translateX(0) translateY(0);
+  }
+  75% {
+    transform: scale(1.12) translateX(1.5%) translateY(1%);
+  }
+  100% {
+    transform: scale(1.1) translateX(0) translateY(0);
+  }
+}
+
+@keyframes shimmer-sweep {
+  0% {
+    transform: translateX(-100%) translateY(-50%) rotate(45deg);
+  }
+  100% {
+    transform: translateX(200%) translateY(-50%) rotate(45deg);
+  }
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.hero-image-animated {
+  animation: hero-zoom-pan 25s ease-in-out infinite;
+  will-change: transform;
+}
+
+.hero-overlay-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 25%,
+    rgba(244, 114, 182, 0.1) 50%,
+    rgba(255, 255, 255, 0.08) 75%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: gradient-shift 8s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  animation: shimmer-sweep 6s ease-in-out infinite;
+}
